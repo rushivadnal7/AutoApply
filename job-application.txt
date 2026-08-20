@@ -1,0 +1,1538 @@
+JOB APPLICATION AUTOMATION SAAS
+COMPLETE PROJECT REQUIREMENTS
+
+1. PROJECT OVERVIEW
+
+We are developing a SaaS-based job application automation platform for candidates applying to jobs in the United States.
+
+The existing dice_apply.py Python script is the functional reference for the first job-platform integration. The current script automates job searching and applications on Dice using Playwright.
+
+The new application should not simply convert the Python script into a web application. The script should be used to understand the required job-search, filtering, duplicate-checking, match-score, resume-upload, and multi-step application workflow.
+
+The long-term goal is to support multiple job portals, including:
+
+- Dice
+- ZipRecruiter
+- Indeed
+- Monster
+- Additional portals in the future
+
+Dice will be the first supported platform. The architecture must allow additional job portals to be added without rewriting the core application.
+
+The primary backend technology will be Node.js. The remaining technology stack can be finalized later.
+
+
+2. MAIN PRODUCT OBJECTIVE
+
+The platform should allow a candidate to configure their job-search requirements and then run an automated job-application process on selected job portals.
+
+Overall workflow:
+
+Candidate Profile
+    ↓
+Resume / CV Configuration
+    ↓
+Job Roles Configuration
+    ↓
+Location & Job Preferences
+    ↓
+Select Job Portals
+    ↓
+Connect Portal Accounts
+    ↓
+Configure Application Limits
+    ↓
+Configure Match Threshold
+    ↓
+Start Bot
+    ↓
+Search Jobs
+    ↓
+Filter Jobs
+    ↓
+Check Duplicate
+    ↓
+Check Match Score
+    ↓
+Start Application
+    ↓
+Complete Application
+    ↓
+Track Result
+    ↓
+Update Dashboard
+
+
+3. US-ONLY PLATFORM
+
+The platform is intended only for US job applications.
+
+The system should restrict location selection to the United States.
+
+Candidates should be able to select:
+
+- US cities
+- US states
+- Multiple US locations
+- Remote — United States
+
+Non-US locations should not be allowed.
+
+
+4. CANDIDATE PROFILE
+
+The candidate should have a profile containing information required during job applications.
+
+Potential fields include:
+
+- Full Name
+- Email Address
+- Phone Number
+- Location
+- Work authorization information where required
+- Other standard candidate information required by supported job portals
+
+The exact fields can be finalized based on the application requirements of each platform.
+
+The candidate should not need to repeatedly enter the same basic information for every job application.
+
+
+5. RESUME / CV MANAGEMENT
+
+Resume management is a core part of the platform.
+
+The existing Python script supports multiple roles and a CV associated with each role.
+
+The SaaS application must support this behavior.
+
+A candidate should be able to use:
+
+Option A:
+Different resume for different roles.
+
+Example:
+
+Business Analyst
+→ Business Analyst Resume.pdf
+
+Data Analyst
+→ Data Analyst Resume.pdf
+
+Option B:
+The SAME resume for multiple roles.
+
+Example:
+
+Business Analyst
+→ General Resume.pdf
+
+Business Data Analyst
+→ General Resume.pdf
+
+Associate Business Analyst
+→ General Resume.pdf
+
+Therefore, assigning a resume to a role should NOT require uploading a new resume for every role. A previously uploaded resume should be selectable for multiple roles.
+
+Resume functionality should include:
+
+- Upload resume
+- View uploaded resumes
+- Replace/update resume
+- Delete resume
+- Assign any uploaded resume to one or more job roles
+- Select which resume should be used for a particular application
+
+The architecture should support multiple resumes per candidate.
+
+
+6. JOB ROLE CONFIGURATION
+
+The candidate should be able to configure multiple job roles.
+
+Example:
+
+Role 1:
+Business Analyst
+
+Role 2:
+Business Data Analyst
+
+Role 3:
+Associate Business Analyst
+
+Each role should be an independent job-search configuration.
+
+Each role should contain at least:
+
+- Job title / keyword
+- Assigned resume
+- Application limit
+- Relevant job-search preferences
+
+IMPORTANT:
+
+A candidate must be able to assign the SAME resume to multiple roles.
+
+Example:
+
+Resume:
+"John_Doe_Resume.pdf"
+
+Can be assigned to:
+
+- Business Analyst
+- Business Data Analyst
+- Associate Business Analyst
+
+This should be a normal supported workflow.
+
+
+7. APPLICATION LIMIT PER ROLE
+
+The candidate should be able to define how many applications they want for each role.
+
+Example:
+
+Business Analyst
+Maximum Applications: 50
+
+Business Data Analyst
+Maximum Applications: 30
+
+Associate Business Analyst
+Maximum Applications: 20
+
+The bot should process jobs for each role until the configured application target has been reached.
+
+The existing Python script already processes roles separately and uses a batch size per role.
+
+
+8. JOB SEARCH PREFERENCES
+
+Each job role should have configurable job-search preferences.
+
+At minimum, support:
+
+JOB KEYWORD
+
+Example:
+Business Analyst
+
+LOCATION
+
+Examples:
+- New York, NY
+- Dallas, TX
+- Austin, TX
+- Remote
+
+DATE POSTED
+
+The current Dice script supports:
+
+- Today
+- Last 3 days
+- All
+
+EMPLOYMENT TYPE
+
+The current Dice workflow supports:
+
+- Contract / C2C
+- Full-time
+- Both
+
+WORK ARRANGEMENT
+
+Options should include:
+
+- Remote only
+- Hybrid
+- On-site
+- Any
+
+Platform-specific limitations should be respected because different job portals may provide different filters.
+
+
+9. JOB PORTAL SELECTION
+
+The candidate should be able to select which job portals they want the bot to use.
+
+Example:
+
+[x] Dice
+[x] ZipRecruiter
+[ ] Indeed
+[x] Monster
+
+Initially, Dice will be implemented.
+
+Additional platforms should be added one by one.
+
+The architecture should use separate platform adapters/integrations.
+
+Example:
+
+Automation Engine
+    |
+    ├── Dice Adapter
+    ├── ZipRecruiter Adapter
+    ├── Indeed Adapter
+    ├── Monster Adapter
+    └── Future Adapters
+
+
+10. JOB PORTAL ACCOUNT CONFIGURATION
+
+For each selected job portal, the candidate should connect their account.
+
+For example, Dice currently requires:
+
+- Account email
+- Account password
+
+The SaaS should provide a portal connection screen.
+
+Example:
+
+Dice
+Status: Connected
+
+Email: candidate@example.com
+
+[Reconnect] [Disconnect]
+
+Credentials must be handled securely.
+
+Passwords must not be stored or displayed as plain text.
+
+Where possible, safer authentication/session mechanisms should be preferred.
+
+
+11. JOB SEARCH ENGINE
+
+For each configured role, the automation engine should create a search based on the role's preferences.
+
+The existing Dice script builds its search using:
+
+- Keyword
+- Location
+- Date posted
+- Employment type
+- Remote preference
+
+The SaaS should have a common search model, while each platform adapter translates that model into the platform-specific search mechanism.
+
+Conceptually:
+
+Candidate Preferences
+    ↓
+Common Search Request
+    ↓
+Platform Adapter
+    ↓
+Dice / ZipRecruiter / Indeed / etc.
+
+
+12. JOB COLLECTION
+
+The bot should collect relevant job information from search results.
+
+The normalized job record should contain information such as:
+
+- Platform
+- External Job ID
+- Job Title
+- Company
+- Location
+- Job URL
+- Job Description where available
+- Match Score
+- Application Status
+- Timestamps
+
+Example:
+
+Job
+├── Platform
+├── External Job ID
+├── Job Title
+├── Company
+├── Location
+├── URL
+├── Description
+├── Match Score
+├── Application Status
+└── Timestamps
+
+
+13. DUPLICATE APPLICATION PREVENTION
+
+Duplicate prevention is a critical requirement.
+
+Before applying to a job, the system should check whether the candidate has already processed/applied to that job.
+
+A job should preferably be identified using:
+
+Platform + External Job ID
+
+The job URL can also be stored as supporting information.
+
+The database should prevent duplicate application records.
+
+The system should also verify the current job status where possible because an old local application record can become stale.
+
+
+14. JOB MATCH SCORE
+
+The current Dice script reads Dice's own match score from the job detail page.
+
+Example:
+
+Your Dice Job Match score is 76%.
+
+For the MVP, when a job portal provides its own match score, the system should store and use that platform-provided score.
+
+Later, the SaaS can introduce a common AI-powered resume/job matching score so jobs from different platforms can be evaluated consistently.
+
+Therefore, the system should keep these concepts separate:
+
+- Platform Match Score
+- Internal/AI Match Score
+
+The initial implementation can use the platform-provided score where available.
+
+
+15. MATCH THRESHOLD
+
+The candidate should be able to configure a minimum match percentage.
+
+Example:
+
+Minimum Match Score: 70%
+
+If the job score is:
+
+82% → Continue with application
+
+55% → Skip the job
+
+The current Dice script already supports this behavior.
+
+Jobs below the configured threshold should be skipped and recorded with a reason.
+
+
+16. JOB SKIP REASONS
+
+Every skipped job should have a clear reason.
+
+Possible reasons:
+
+- Match score below threshold
+- Already applied
+- Duplicate job
+- Job no longer available
+- Location mismatch
+- Employment type mismatch
+- Application not supported
+- User-defined filter mismatch
+
+The application history should preserve the skip reason.
+
+
+17. APPLICATION WORKFLOW
+
+After a job passes the configured filters, the automation engine should start the application.
+
+General workflow:
+
+Open Job
+    ↓
+Verify Job
+    ↓
+Check Match Score
+    ↓
+Check Already Applied
+    ↓
+Find Apply Button
+    ↓
+Start Application
+    ↓
+Complete Required Information
+    ↓
+Upload Appropriate Resume
+    ↓
+Complete Optional Information
+    ↓
+Continue Through Application Steps
+    ↓
+Submit Application
+    ↓
+Verify Submission
+    ↓
+Store Application Record
+
+
+18. MULTI-STEP APPLICATION FORMS
+
+Application forms may contain multiple steps.
+
+The current Dice script already handles multi-step application flows involving actions such as:
+
+- Upload Resume
+- Continue
+- Next
+- Review Application
+- Submit Application
+- Confirm
+- Done
+
+The SaaS must support multi-step forms.
+
+IMPORTANT REQUIREMENT — REQUIRED VS OPTIONAL FIELDS
+
+The application must distinguish between MANDATORY fields and OPTIONAL fields.
+
+Mandatory candidate/contact information must not be skipped.
+
+For example, if the application requires:
+
+- Email Address
+- Phone Number
+- Full Name
+- Other mandatory contact information
+
+the bot must provide those values and should NOT offer the user an option to skip them.
+
+The system should maintain a mapping of required fields and candidate profile data.
+
+Example:
+
+Email Address
+Required → YES
+Candidate data available → YES
+Action → Fill automatically
+
+Phone Number
+Required → YES
+Candidate data available → YES
+Action → Fill automatically
+
+Full Name
+Required → YES
+Candidate data available → YES
+Action → Fill automatically
+
+Cover Letter
+Required → NO
+Candidate data available → NO
+Action → Skip
+
+OPTIONAL FIELDS
+
+For optional fields, the system should allow the candidate to choose whether the bot should fill or skip them.
+
+Examples:
+
+- Cover Letter
+- Optional message
+- Optional portfolio URL
+- Optional social profile
+- Other non-mandatory fields
+
+The user should have a configuration such as:
+
+Optional Fields:
+[x] Skip Cover Letter
+[x] Skip Optional Message
+[x] Skip Portfolio
+[ ] Fill LinkedIn Profile
+
+However, the bot must never skip a field that is actually mandatory for submission.
+
+CORE RULE:
+
+Mandatory field → MUST be completed.
+
+Optional field → MAY be skipped according to candidate preference.
+
+The automation should first determine whether a field is required based on the form's UI/validation state and available labels/attributes. If the field is mandatory, the bot must attempt to populate it using the candidate profile data.
+
+If a mandatory field cannot be completed because required information is missing, the application should fail gracefully and record the exact reason rather than submitting incomplete information.
+
+Example:
+
+Email:
+Required → YES
+Value → candidate@email.com
+Action → Fill
+
+Cover Letter:
+Required → NO
+Value → Not provided
+Action → Skip
+
+This logic should be part of the generic application engine, while the individual portal adapter handles platform-specific form structures.
+
+
+19. RESUME UPLOAD
+
+The resume assigned to the current role should automatically be used during the application.
+
+If the candidate has:
+
+Business Analyst → Resume A
+Business Data Analyst → Resume A
+Associate Business Analyst → Resume B
+
+the bot should automatically select the appropriate resume based on the role.
+
+The system should identify resume upload fields and avoid treating optional cover-letter upload fields as resume fields.
+
+If the resume upload itself is mandatory, the bot must upload the configured resume.
+
+
+20. APPLICATION SUCCESS VERIFICATION
+
+The bot should not assume that an application was successful simply because it clicked a Submit button.
+
+The system should verify successful submission using available indicators such as:
+
+- Application submitted
+- Successfully applied
+- Application received
+- Thank you for applying
+- You have applied
+- Modal closes after final submission where appropriate
+- Platform-specific success indicators
+
+Application statuses should include:
+
+- Processing
+- Applied
+- Failed
+- Skipped
+
+
+21. FAILURE HANDLING
+
+A single failed application should not stop the entire bot.
+
+Example:
+
+Job #25
+Status: Failed
+Reason: Required field could not be completed
+
+Continue to Job #26
+
+Possible failure reasons:
+
+- Login failure
+- Authentication expired
+- Job unavailable
+- Apply button unavailable
+- Application form changed
+- Mandatory information missing
+- Resume upload failure
+- Website error
+- Timeout
+- Unexpected application step
+- CAPTCHA or other platform interruption
+
+The system should log the failure and continue where possible.
+
+
+22. BOT STATUS
+
+The user should always be able to see what the bot is doing.
+
+Possible statuses:
+
+- Idle
+- Starting
+- Logging In
+- Searching
+- Analyzing
+- Applying
+- Waiting
+- Paused
+- Resuming
+- Completed
+- Failed
+- Stopped
+
+Example:
+
+Bot Status: Applying
+
+Platform: Dice
+Role: Business Analyst
+Current Job: Senior Business Analyst
+Progress: 24 / 50
+
+
+23. START / PAUSE / RESUME / STOP
+
+The dashboard should provide:
+
+- Start Bot
+- Pause Bot
+- Resume Bot
+- Stop Bot
+
+The bot should run as a background process rather than inside a normal HTTP request.
+
+The API should start a bot run and return immediately while the automation worker performs the actual job-processing work.
+
+
+24. APPLICATION DELAY / RATE CONTROL
+
+The existing script has a configurable delay between applications.
+
+The SaaS should have an automation pacing/rate-control mechanism.
+
+The purpose is to control the bot's processing rate and prevent excessive requests.
+
+The exact limits and behavior can be configured later based on each supported platform's requirements.
+
+
+25. DASHBOARD
+
+The dashboard is the main interface of the SaaS application.
+
+It should provide a high-level overview of the candidate's job-application activity.
+
+Example summary cards:
+
+Total Applications
+125
+
+Successful Applications
+108
+
+Skipped
+12
+
+Failed
+5
+
+Active Bot Runs
+1
+
+Average Match Score
+82%
+
+
+26. PLATFORM STATISTICS
+
+The dashboard should show applications by platform.
+
+Example:
+
+Dice
+60 applications
+
+ZipRecruiter
+35 applications
+
+Indeed
+20 applications
+
+Monster
+10 applications
+
+
+27. ROLE STATISTICS
+
+The dashboard should show application progress by role.
+
+Example:
+
+Business Analyst
+42 / 50
+
+Business Data Analyst
+25 / 30
+
+Associate Business Analyst
+18 / 20
+
+This should correspond to each role's configured application target.
+
+
+28. APPLICATION PROGRESS
+
+For an active bot, the dashboard should show real-time progress.
+
+Example:
+
+Business Analyst
+
+42 / 50 applications completed
+
+Applied: 42
+Skipped: 15
+Failed: 3
+
+Current Platform:
+Dice
+
+Current Job:
+Senior Business Analyst
+
+The frontend should receive progress updates without requiring manual page refresh.
+
+WebSockets or Server-Sent Events can be considered.
+
+
+29. APPLICATION HISTORY
+
+There should be a dedicated application-history page.
+
+Each record should contain:
+
+- Job Title
+- Company
+- Platform
+- External Job ID
+- Job URL
+- Location
+- Job Role
+- Resume Used
+- Platform Match Score
+- Internal/AI Match Score where available
+- Application Status
+- Date/Time
+- Failure reason
+- Skip reason
+
+
+30. APPLICATION HISTORY FILTERS
+
+Users should be able to search/filter application history by:
+
+- Job title
+- Company
+- Platform
+- Role
+- Status
+- Match score
+- Date
+- Location
+
+
+31. BOT ACTIVITY LOGS
+
+The SaaS should provide structured activity logs.
+
+Example:
+
+10:31:22
+Connected to Dice
+
+10:31:25
+Searching Business Analyst jobs
+
+10:31:31
+Found 24 jobs
+
+10:31:35
+Analyzing Senior Business Analyst
+
+10:31:37
+Match score: 87%
+
+10:31:42
+Application submitted
+
+Logs should be associated with the relevant bot run, job, and application where applicable.
+
+
+32. BOT RUN HISTORY
+
+Every time the user starts the bot, the system should create a Bot Run.
+
+Example:
+
+Run #1024
+
+Started:
+10:30 AM
+
+Completed:
+11:15 AM
+
+Platforms:
+Dice
+
+Roles:
+Business Analyst
+Business Data Analyst
+
+Applied:
+32
+
+Skipped:
+18
+
+Failed:
+4
+
+The user should be able to view previous bot runs.
+
+
+33. DATABASE DESIGN
+
+The current Python script stores configuration and history using local files such as:
+
+- dice_config.json
+- dice_applied.json
+- dice_log.txt
+- dice_skipped.csv
+
+The SaaS should replace these with a proper database.
+
+Suggested core entities:
+
+User
+CandidateProfile
+Resume
+JobRole
+JobPreference
+JobPortal
+PortalAccount
+Job
+Application
+Bot
+BotRun
+BotLog
+
+Additional entities can be introduced as required.
+
+
+34. RESUME-TO-ROLE RELATIONSHIP
+
+The data model must explicitly support one resume being assigned to multiple roles.
+
+Example:
+
+Resume A
+    ├── Business Analyst
+    ├── Business Data Analyst
+    └── Associate Business Analyst
+
+Resume B
+    └── Data Scientist
+
+This should be a normal many-to-many relationship between resumes and job roles if the architecture requires it.
+
+At minimum, a role must be able to reference an existing uploaded resume without requiring a duplicate upload.
+
+
+35. MULTI-PORTAL ARCHITECTURE
+
+The core application should not contain Dice-specific logic everywhere.
+
+Each job portal should have its own adapter.
+
+Conceptual interface:
+
+JobPortalAdapter
+
+- authenticate()
+- searchJobs()
+- getJobDetails()
+- getMatchScore()
+- checkApplicationStatus()
+- startApplication()
+- detectFormFields()
+- fillRequiredFields()
+- skipOptionalFields()
+- uploadResume()
+- submitApplication()
+- verifyApplication()
+
+Implementations:
+
+DiceAdapter
+ZipRecruiterAdapter
+IndeedAdapter
+MonsterAdapter
+
+The common automation engine should call the generic interface while each adapter handles platform-specific behavior.
+
+
+36. AUTOMATION ENGINE
+
+The automation engine coordinates the complete process.
+
+High-level workflow:
+
+Receive Bot Configuration
+        ↓
+Load Roles
+        ↓
+Load Selected Platforms
+        ↓
+Authenticate
+        ↓
+For Each Role
+        ↓
+Search Jobs
+        ↓
+Process Jobs
+        ↓
+Filter Jobs
+        ↓
+Check Match Score
+        ↓
+Check Duplicate
+        ↓
+Start Application
+        ↓
+Detect Required / Optional Fields
+        ↓
+Fill Mandatory Fields
+        ↓
+Skip Optional Fields According to User Settings
+        ↓
+Upload Resume
+        ↓
+Submit
+        ↓
+Verify Submission
+        ↓
+Record Result
+        ↓
+Update Progress
+
+
+37. BACKGROUND JOB PROCESSING
+
+The bot should not run inside a normal HTTP request.
+
+Recommended architecture:
+
+POST /start-bot
+        ↓
+Create Bot Run
+        ↓
+Queue Background Job
+        ↓
+Return API response
+        ↓
+Automation Worker executes bot
+        ↓
+Worker updates database
+        ↓
+Dashboard receives progress updates
+
+A queue/worker architecture should be considered.
+
+
+38. FRONTEND REQUIREMENTS
+
+The application should have at least:
+
+- Dashboard
+- Candidate Profile
+- Resumes
+- Job Roles
+- Job Preferences
+- Job Portals
+- Bot Configuration
+- Bot Runs
+- Applications
+- Logs
+- Settings
+
+
+39. CANDIDATE SETUP WIZARD
+
+A first-time candidate should be guided through a setup wizard.
+
+Step 1
+Candidate Information
+
+Step 2
+Upload Resume(s)
+
+Step 3
+Add Job Roles
+
+Step 4
+Assign Resume to Each Role
+
+Step 5
+Select US Locations
+
+Step 6
+Configure Job Filters
+
+Step 7
+Configure Required/Optional Application Preferences
+
+Step 8
+Select Job Portals
+
+Step 9
+Connect Portal Accounts
+
+Step 10
+Configure Application Limits
+
+Step 11
+Set Match Threshold
+
+Step 12
+Review Configuration
+
+Step 13
+Start Bot
+
+
+40. OPTIONAL APPLICATION FIELD PREFERENCES
+
+The candidate should have control over optional application information.
+
+Example:
+
+Optional Fields
+
+[x] Skip Cover Letter
+[x] Skip Optional Message
+[x] Skip Portfolio
+[ ] Fill LinkedIn Profile
+
+The system should clearly communicate that these settings apply ONLY to optional fields.
+
+Mandatory fields cannot be disabled or skipped.
+
+Example:
+
+Email Address
+Mandatory → Cannot skip
+
+Phone Number
+Mandatory → Cannot skip
+
+Full Name
+Mandatory → Cannot skip
+
+Cover Letter
+Optional → Can skip
+
+The system should prevent configuration settings from accidentally instructing the bot to skip mandatory information.
+
+
+41. CONFIGURATION REVIEW
+
+Before starting automation, show a final configuration summary.
+
+Example:
+
+Selected Platforms:
+Dice
+
+Job Roles:
+Business Analyst — 50 applications — Resume A
+Business Data Analyst — 30 applications — Resume A
+Associate Business Analyst — 20 applications — Resume B
+
+Locations:
+Dallas, TX
+Austin, TX
+Remote
+
+Date Posted:
+Last 3 Days
+
+Employment Type:
+Contract
+
+Minimum Match:
+70%
+
+Optional Application Fields:
+Skip Cover Letter
+Skip Optional Message
+
+
+42. SECURITY REQUIREMENTS
+
+Because the platform handles candidate information, resumes, and potentially job-portal credentials, security must be designed from the beginning.
+
+Requirements:
+
+- Passwords must not be stored as plain text.
+- Sensitive credentials should be encrypted when storage is required.
+- Resume files must have controlled access.
+- Users must only access their own data.
+- Authentication sessions/tokens must be protected.
+- API endpoints require authorization.
+- Logs must not expose passwords or sensitive credentials.
+- File uploads must be validated.
+- Database access should follow least-privilege principles.
+
+
+43. ERROR AND RECOVERY
+
+The automation should recover from temporary failures where possible.
+
+Example:
+
+Network Error
+    ↓
+Retry
+    ↓
+If successful → Continue
+If unsuccessful → Mark Job Failed
+    ↓
+Continue to Next Job
+
+If a portal session expires:
+
+Session Expired
+    ↓
+Attempt Re-authentication
+    ↓
+Successful → Continue
+Unsuccessful → Pause Bot + Notify User
+
+
+44. NOTIFICATIONS
+
+A future version should support:
+
+- Bot Started
+- Bot Paused
+- Bot Completed
+- Authentication Failed
+- Application Target Reached
+- Critical Error
+
+Possible channels:
+
+- In-app notifications
+- Email
+- Other notification channels
+
+
+45. ANALYTICS
+
+Future analytics can include:
+
+- Applications per day
+- Applications per platform
+- Applications per role
+- Average match score
+- Success/failure rate
+- Skip reasons
+- Application trends
+- Platform performance
+
+
+46. MVP — PHASE 1
+
+The MVP should focus on a reliable Dice implementation through the SaaS dashboard.
+
+MVP FEATURES:
+
+Authentication
+- Registration
+- Login
+- Logout
+
+Candidate
+- Candidate profile
+- Contact details
+- Resume upload
+- Multiple stored resumes
+
+Roles
+- Multiple job roles
+- Assign same resume to multiple roles
+- Assign different resumes to different roles
+- Application limit per role
+
+Preferences
+- US-only locations
+- Date posted
+- Employment type
+- Remote preference
+- Match threshold
+- Optional-field preferences
+
+Dice
+- Dice account connection
+- Dice login
+- Job search
+- Job collection
+- Job detail processing
+- Match score
+- Duplicate detection
+- Resume upload
+- Required-field handling
+- Optional-field skipping
+- Multi-step application
+- Application submission
+- Success/failure detection
+
+Dashboard
+- Total applications
+- Applied
+- Skipped
+- Failed
+- Role progress
+- Current bot status
+- Platform statistics
+
+History
+- Application history
+- Skip reasons
+- Failure reasons
+- Bot logs
+- Bot run history
+
+
+47. PHASE 2 — ADDITIONAL JOB PORTALS
+
+After the Dice implementation is stable, add:
+
+1. ZipRecruiter
+2. Indeed
+3. Monster
+4. Other platforms
+
+Each should be implemented as a separate adapter.
+
+The core dashboard, database, application tracking, and automation engine should remain reusable.
+
+
+48. PHASE 3 — ADVANCED FEATURES
+
+Potential future features:
+
+- AI-powered resume/job matching
+- Multiple resumes
+- AI-generated application-question answers
+- Scheduled bot runs
+- Daily application limits
+- Email notifications
+- Advanced analytics
+- Subscription plans
+- Usage limits
+- Admin dashboard
+- Team/company accounts
+- More job portals
+
+
+49. WHAT SHOULD BE REUSED FROM THE PYTHON SCRIPT
+
+The existing Python script provides the functional baseline for:
+
+- Multi-role processing
+- Multi-CV support
+- Role-specific resume assignment
+- Job-search filters
+- Match threshold
+- Application limits
+- Job scraping
+- Duplicate detection
+- Application status verification
+- Resume upload
+- Multi-step application handling
+- Applied/skipped/failed tracking
+- Pagination
+- Progress tracking
+- Logging
+- Session reuse
+
+The existing script should be treated as the reference for Dice-specific behavior.
+
+
+50. WHAT SHOULD BE REDESIGNED FOR THE SAAS
+
+The following local/script-specific mechanisms should not be copied directly.
+
+Current:
+dice_config.json
+→ New:
+Database
+
+Current:
+dice_applied.json
+→ New:
+Application/Job database records
+
+Current:
+dice_skipped.csv
+→ New:
+Structured job/application records
+
+Current:
+dice_log.txt
+→ New:
+Structured BotLog records
+
+Current:
+Terminal prompts
+→ New:
+Web dashboard and setup wizard
+
+Current:
+DiceBot class containing all automation logic
+→ New:
+Generic Automation Engine + platform-specific adapters
+
+
+51. RECOMMENDED HIGH-LEVEL ARCHITECTURE
+
+                    FRONTEND
+                       |
+                       v
+                Node.js REST API
+                       |
+        ┌──────────────┼──────────────┐
+        |              |              |
+        v              v              v
+   User/Profile    Job Config     Dashboard
+        |              |              |
+        └──────────────┼──────────────┘
+                       |
+                       v
+                    Database
+                       |
+                       v
+                  Job Queue
+                       |
+                       v
+              Automation Worker
+                       |
+             ┌─────────┼─────────┐
+             |         |         |
+             v         v         v
+          Dice      Indeed   ZipRecruiter
+          Adapter   Adapter     Adapter
+             |         |         |
+             v         v         v
+              Job Platforms
+
+
+52. CORE DEVELOPMENT PRINCIPLE
+
+Build the product as a multi-platform SaaS from day one, even though Dice is the first platform.
+
+Do NOT build a large Dice-specific system and attempt to convert it later.
+
+Instead:
+
+Common SaaS Logic
+        +
+Common Automation Engine
+        +
+Platform-Specific Adapters
+
+The common engine should handle:
+
+- Candidate data
+- Roles
+- Resumes
+- Preferences
+- Application limits
+- Required vs optional fields
+- Match filtering
+- Duplicate prevention
+- Application tracking
+- Dashboard updates
+- Logging
+
+The platform adapters should handle:
+
+- Login/authentication
+- Job search
+- Platform-specific job details
+- Platform-specific match score
+- Apply button
+- Form structure
+- Field detection
+- Platform-specific application workflow
+- Submission verification
+
+
+53. FINAL END-TO-END USER EXPERIENCE
+
+1. Sign Up / Login
+        ↓
+2. Create Candidate Profile
+        ↓
+3. Upload Resume(s)
+        ↓
+4. Add Multiple Job Roles
+        ↓
+5. Assign Existing Resume to Each Role
+        ↓
+6. Select US Locations
+        ↓
+7. Configure Remote / Hybrid / On-site
+        ↓
+8. Configure Job Filters
+        ↓
+9. Set Application Limit Per Role
+        ↓
+10. Set Match Threshold
+        ↓
+11. Configure Optional Field Preferences
+        ↓
+12. Select Job Portals
+        ↓
+13. Connect Portal Accounts
+        ↓
+14. Review Configuration
+        ↓
+15. Start Bot
+        ↓
+16. Bot Searches Jobs
+        ↓
+17. Bot Filters Jobs
+        ↓
+18. Bot Checks Duplicate
+        ↓
+19. Bot Checks Match Score
+        ↓
+20. Bot Starts Application
+        ↓
+21. Bot Detects Required / Optional Fields
+        ↓
+22. Bot Fills Mandatory Information
+        ↓
+23. Bot Skips Optional Fields According to Preferences
+        ↓
+24. Bot Uploads Correct Resume
+        ↓
+25. Bot Completes Application
+        ↓
+26. Bot Verifies Submission
+        ↓
+27. Application Saved
+        ↓
+28. Dashboard Updated
+        ↓
+29. Bot Continues Until Configured Limits
+        ↓
+30. Run Completed
+        ↓
+31. Candidate Reviews Results
+
+
+54. FIRST DEVELOPMENT MILESTONE
+
+The first development milestone should be:
+
+"A web-based SaaS dashboard where a candidate can configure multiple job roles, assign the same or different resumes to those roles, select US-only job preferences, configure mandatory/optional application-field behavior, connect their Dice account, start an automated Dice job-application run, and monitor applied, skipped, and failed jobs in real time."
+
+Once this works reliably, the second major milestone should be adding another job portal without changing the core dashboard, database, or automation workflow.
+
+The architecture should prove that adding a second platform is primarily an adapter/integration task rather than a rewrite of the application.

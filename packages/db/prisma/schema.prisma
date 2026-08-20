@@ -1,0 +1,441 @@
+// Job Application Automation SaaS — core data model.
+// See SYSTEM_DESIGN.md §5 for the relationships this schema is built to guarantee:
+//   - Resume <-> JobRole is many-to-many via ResumeJobRole (not a simple FK)
+//   - Job dedup key is (jobPortalId, externalJobId) — a shared, non-user-owned scrape cache
+//   - Application dedup key is (userId, jobId) — the per-user "already applied" guarantee
+//
+// Two constraints below are documented as TODO(partial-index) because Prisma's
+// schema DSL cannot express a partial/filtered unique index. They are added via
+// raw SQL in the initial migration (see prisma/migrations/*_init/migration.sql)
+// and enforced defensively in the service layer in the meantime:
+//   1. ResumeJobRole: at most one isPrimary=true row per jobRoleId
+//   2. BotRun: at most one row per userId whose status is in the "active" set
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ── Enums ────────────────────────────────────────────────────────────────
+
+enum WorkAuthorization {
+  us_citizen
+  green_card
+  h1b
+  opt_ead
+  gc_ead
+  other
+}
+
+enum DatePosted {
+  today
+  last_3_days
+  all
+}
+
+enum EmploymentType {
+  contract_c2c
+  fulltime
+  both
+}
+
+enum WorkArrangement {
+  remote
+  hybrid
+  onsite
+  any
+}
+
+enum LocationType {
+  city
+  state
+  remote
+}
+
+enum PortalCode {
+  DICE
+  ZIPRECRUITER
+  INDEED
+  MONSTER
+}
+
+enum PortalAccountStatus {
+  connected
+  disconnected
+  reauth_required
+  error
+}
+
+enum ApplicationStatus {
+  processing
+  applied
+  failed
+  skipped
+}
+
+enum SkipReason {
+  below_match_threshold
+  already_applied
+  duplicate_job
+  job_unavailable
+  location_mismatch
+  employment_type_mismatch
+  application_not_supported
+  user_filter_mismatch
+}
+
+enum FailureReason {
+  login_failed
+  session_expired_reauth_failed
+  job_unavailable
+  apply_button_unavailable
+  form_changed
+  mandatory_field_unfillable
+  resume_upload_failed
+  website_error
+  timeout
+  unexpected_application_step
+  captcha_interruption
+  network_error
+  unknown_error
+}
+
+enum BotStatus {
+  idle
+  starting
+  logging_in
+  searching
+  analyzing
+  applying
+  waiting
+  paused
+  resuming
+  completed
+  failed
+  stopped
+}
+
+enum LogLevel {
+  debug
+  info
+  warn
+  error
+}
+
+// ── Core entities ────────────────────────────────────────────────────────
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  profile        CandidateProfile?
+  resumes        Resume[]
+  jobRoles       JobRole[]
+  portalAccounts PortalAccount[]
+  applications   Application[]
+  bot            Bot?
+  botRuns        BotRun[]
+  refreshTokens  RefreshToken[]
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  userAgent String?
+  ipAddress String?
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+model CandidateProfile {
+  id                String             @id @default(uuid())
+  userId            String             @unique
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fullName          String
+  phone             String
+  city              String?
+  state             String? // 2-letter US code, validated app-layer against US_STATES
+  workAuthorization WorkAuthorization?
+  linkedinUrl       String?
+  portfolioUrl      String?
+  updatedAt         DateTime           @updatedAt
+  createdAt         DateTime           @default(now())
+}
+
+model Resume {
+  id            String    @id @default(uuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fileName      String
+  storagePath   String // Supabase Storage key: resumes/{userId}/{id}/{fileName}
+  fileSizeBytes Int
+  mimeType      String
+  isDefault     Boolean   @default(false)
+  uploadedAt    DateTime  @default(now())
+  deletedAt     DateTime?
+
+  roleLinks    ResumeJobRole[]
+  applications Application[]
+
+  @@index([userId])
+}
+
+model JobRole {
+  id               String    @id @default(uuid())
+  userId           String
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title            String // keyword, e.g. "Business Analyst"
+  applicationLimit Int
+  isActive         Boolean   @default(true)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  resumeLinks  ResumeJobRole[]
+  preference   JobPreference?
+  locations    JobRoleLocation[]
+  applications Application[]
+  botRunRoles  BotRunRole[]
+
+  @@index([userId])
+}
+
+model ResumeJobRole {
+  id         String   @id @default(uuid())
+  resumeId   String
+  resume     Resume   @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  jobRoleId  String
+  jobRole    JobRole  @relation(fields: [jobRoleId], references: [id], onDelete: Cascade)
+  isPrimary  Boolean  @default(true)
+  assignedAt DateTime @default(now())
+
+  // TODO(partial-index): also enforced as "at most one isPrimary=true per jobRoleId"
+  // via a partial unique index added in the init migration's raw SQL.
+  @@unique([resumeId, jobRoleId])
+  @@index([jobRoleId])
+}
+
+model JobPreference {
+  id                    String         @id @default(uuid())
+  jobRoleId             String         @unique
+  jobRole               JobRole        @relation(fields: [jobRoleId], references: [id], onDelete: Cascade)
+  datePosted            DatePosted
+  employmentType        EmploymentType
+  workArrangement       WorkArrangement
+  matchThresholdPercent Int
+  skipCoverLetter       Boolean        @default(true)
+  skipOptionalMessage   Boolean        @default(true)
+  skipPortfolio         Boolean        @default(true)
+  fillLinkedIn          Boolean        @default(false)
+  updatedAt             DateTime       @updatedAt
+}
+
+model JobRoleLocation {
+  id           String       @id @default(uuid())
+  jobRoleId    String
+  jobRole      JobRole      @relation(fields: [jobRoleId], references: [id], onDelete: Cascade)
+  locationType LocationType
+  city         String?
+  state        String? // validated app-layer against the static US state list
+
+  @@index([jobRoleId])
+}
+
+model JobPortal {
+  id       String  @id @default(uuid())
+  code     PortalCode @unique
+  name     String
+  isActive Boolean @default(false) // whether a real adapter exists yet
+
+  portalAccounts PortalAccount[]
+  jobs           Job[]
+  botRunPortals  BotRunPortal[]
+}
+
+model PortalAccount {
+  id          String              @id @default(uuid())
+  userId      String
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobPortalId String
+  jobPortal   JobPortal           @relation(fields: [jobPortalId], references: [id])
+  status      PortalAccountStatus @default(disconnected)
+
+  accountEmail String
+
+  // AES-256-GCM ciphertext, base64. Never returned by any read endpoint.
+  encryptedPassword    String
+  encryptionIv         String
+  encryptionAuthTag    String
+  encryptionKeyVersion Int     @default(1)
+
+  // Cached Playwright storageState, same AES-256-GCM scheme.
+  sessionStateEncrypted    String?
+  sessionStateIv           String?
+  sessionStateAuthTag      String?
+  sessionStateKeyVersion   Int?
+
+  lastVerifiedAt DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  applications  Application[]
+  botRunPortals BotRunPortal[]
+
+  @@unique([userId, jobPortalId])
+}
+
+/// Globally deduped scrape cache — NOT user-owned. Two different users
+/// applying to the same posting share one Job row.
+model Job {
+  id                 String    @id @default(uuid())
+  jobPortalId        String
+  jobPortal          JobPortal @relation(fields: [jobPortalId], references: [id])
+  externalJobId      String
+  title              String
+  company            String
+  location           String
+  url                String
+  description        String?
+  employmentTypeRaw  String?
+  workArrangementRaw String?
+  postedAt           DateTime?
+  firstSeenAt        DateTime  @default(now())
+  lastSeenAt         DateTime  @default(now())
+  rawPayload         Json?
+
+  applications Application[]
+
+  @@unique([jobPortalId, externalJobId])
+}
+
+model Application {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobId  String
+  job    Job    @relation(fields: [jobId], references: [id])
+
+  jobRoleId String
+  jobRole   JobRole @relation(fields: [jobRoleId], references: [id])
+
+  resumeId String?
+  resume   Resume? @relation(fields: [resumeId], references: [id])
+
+  portalAccountId String
+  portalAccount   PortalAccount @relation(fields: [portalAccountId], references: [id])
+
+  botRunId String
+  botRun   BotRun @relation(fields: [botRunId], references: [id], onDelete: Cascade)
+
+  status             ApplicationStatus @default(processing)
+  platformMatchScore Int?
+  internalMatchScore Int? // reserved for future AI scoring — unused in MVP
+  skipReason         SkipReason?
+  failureReason      FailureReason?
+  failureDetail      String?
+  appliedAt          DateTime?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  logs BotLog[]
+
+  // The duplicate-prevention constraint: one candidate can process a given
+  // job at most once, ever.
+  @@unique([userId, jobId])
+  @@index([userId, status])
+  @@index([userId, createdAt])
+}
+
+/// Live control-state singleton per user — what the dashboard polls/subscribes to.
+model Bot {
+  id                 String    @id @default(uuid())
+  userId             String    @unique
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status             BotStatus @default(idle)
+  currentBotRunId    String?
+  currentPlatform    PortalCode?
+  currentJobRoleId   String?
+  currentJobTitle    String?
+  progressApplied    Int       @default(0)
+  progressSkipped    Int       @default(0)
+  progressFailed     Int       @default(0)
+  progressTotal      Int       @default(0)
+  pacingDelaySeconds Int       @default(20)
+  updatedAt          DateTime  @updatedAt
+}
+
+model BotRun {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status      BotStatus @default(starting)
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  totalApplied Int @default(0)
+  totalSkipped Int @default(0)
+  totalFailed  Int @default(0)
+
+  roles        BotRunRole[]
+  portals      BotRunPortal[]
+  logs         BotLog[]
+  applications Application[]
+
+  // TODO(partial-index): also enforced as "at most one active BotRun per user"
+  // (status IN the active set) via a partial unique index in the init migration.
+  @@index([userId, status])
+}
+
+model BotRunRole {
+  id                       String  @id @default(uuid())
+  botRunId                 String
+  botRun                   BotRun  @relation(fields: [botRunId], references: [id], onDelete: Cascade)
+  jobRoleId                String
+  jobRole                  JobRole @relation(fields: [jobRoleId], references: [id])
+  applicationLimitSnapshot Int
+  appliedCount             Int     @default(0)
+  skippedCount             Int     @default(0)
+  failedCount              Int     @default(0)
+
+  @@unique([botRunId, jobRoleId])
+}
+
+model BotRunPortal {
+  id              String        @id @default(uuid())
+  botRunId        String
+  botRun          BotRun        @relation(fields: [botRunId], references: [id], onDelete: Cascade)
+  jobPortalId     String
+  jobPortal       JobPortal     @relation(fields: [jobPortalId], references: [id])
+  portalAccountId String
+  portalAccount   PortalAccount @relation(fields: [portalAccountId], references: [id])
+
+  @@unique([botRunId, jobPortalId])
+}
+
+model BotLog {
+  id            String       @id @default(uuid())
+  botRunId      String
+  botRun        BotRun       @relation(fields: [botRunId], references: [id], onDelete: Cascade)
+  jobRoleId     String?
+  jobId         String?
+  applicationId String?
+  application   Application? @relation(fields: [applicationId], references: [id])
+  level         LogLevel     @default(info)
+  message       String
+  context       Json?
+  createdAt     DateTime     @default(now())
+
+  @@index([botRunId, createdAt])
+}

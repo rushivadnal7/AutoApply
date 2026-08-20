@@ -1,0 +1,14 @@
+{
+  "name": "@job-app/config",
+  "private": true,
+  "version": "0.1.0",
+  "main": "index.js",
+  "files": [
+    "base.json",
+    "nextjs.json",
+    "eslint-base.js"
+  ],
+  "devDependencies": {
+    "typescript": "^5.6.0"
+  }
+}

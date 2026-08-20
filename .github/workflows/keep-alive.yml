@@ -1,0 +1,34 @@
+name: Keep-Alive Ping
+
+# Render's free Web Service tier sleeps after ~15 minutes idle, and a
+# Supabase free project pauses after 7 days with no database requests (see
+# SYSTEM_DESIGN.md §12). This workflow pings the deployed api/worker health
+# endpoints every 10 minutes and the API (which itself queries Postgres) at
+# least a few times a week, keeping both from sleeping/pausing.
+#
+# SETUP (do this once you've deployed — see Phase 13 in IMPLEMENTATION_PLAN.md):
+#   Settings > Secrets and variables > Actions > Variables, add:
+#     API_HEALTH_URL    e.g. https://job-app-api.onrender.com/health
+#     WORKER_HEALTH_URL e.g. https://job-app-worker.onrender.com/health
+# Until those are set, this workflow's steps are no-ops (they skip cleanly).
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping API health endpoint (also touches Postgres via Prisma)
+        if: vars.API_HEALTH_URL != ''
+        run: curl -sf "${{ vars.API_HEALTH_URL }}" || echo "API ping failed (non-fatal)"
+
+      - name: Ping worker health endpoint
+        if: vars.WORKER_HEALTH_URL != ''
+        run: curl -sf "${{ vars.WORKER_HEALTH_URL }}" || echo "Worker ping failed (non-fatal)"
+
+      - name: Reminder if not configured yet
+        if: vars.API_HEALTH_URL == '' && vars.WORKER_HEALTH_URL == ''
+        run: echo "API_HEALTH_URL/WORKER_HEALTH_URL repo variables aren't set yet — see the comment at the top of this workflow file."

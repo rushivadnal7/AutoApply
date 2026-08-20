@@ -1,0 +1,38 @@
+node_modules/
+.pnpm-store/
+dist/
+build/
+.next/
+.turbo/
+coverage/
+
+# env
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# editor
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# prisma
+packages/db/generated/
+
+# uploads (local dev fallback storage)
+apps/api/uploads/
+
+# playwright
+apps/worker/test-results/
+apps/worker/playwright-report/
+**/playwright/.cache/
