@@ -36,4 +36,6 @@ ENV NODE_ENV=production
 ENV WORKER_ADAPTER_MODE=mock
 COPY --from=build /repo /repo
 EXPOSE 4100
-CMD ["pnpm", "exec", "tsx", "apps/worker/src/main.ts"]
+# See the equivalent comment in apps/api/Dockerfile — run via the package's
+# own "start" script so tsx resolves from apps/worker/node_modules/.bin.
+CMD ["pnpm", "--filter", "@job-app/worker", "start"]

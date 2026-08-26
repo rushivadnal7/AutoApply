@@ -36,4 +36,8 @@ WORKDIR /repo
 ENV NODE_ENV=production
 COPY --from=build /repo /repo
 EXPOSE 4000
-CMD ["pnpm", "exec", "tsx", "apps/api/src/server.ts"]
+# `pnpm exec` from the repo root only resolves binaries reachable from the
+# root package's own dependencies — tsx is a dependency of apps/api
+# specifically, so we run it via that package's own "start" script instead,
+# which correctly prepends apps/api/node_modules/.bin to PATH.
+CMD ["pnpm", "--filter", "@job-app/api", "start"]
