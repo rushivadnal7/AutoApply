@@ -1,3 +1,4 @@
+import "./lib/websocket-polyfill.js"; // must run before anything constructs a Supabase client
 import Fastify from "fastify";
 import multipart from "@fastify/multipart";
 import { createLogger } from "@job-app/logger";

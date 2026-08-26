@@ -1,3 +1,4 @@
+import "./lib/websocket-polyfill.js"; // must run before anything constructs a Supabase client
 import { createLogger } from "@job-app/logger";
 import { env } from "./lib/env.js";
 import { createRedisConnection } from "./lib/redis.js";
