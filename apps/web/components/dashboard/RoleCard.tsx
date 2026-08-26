@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { api, ApiError } from "@/lib/api-client";
+import { api, formatApiError } from "@/lib/api-client";
 import { US_STATES } from "@job-app/shared";
 
 interface ResumeOption {
@@ -71,24 +71,34 @@ export function RoleCard({ role, availableResumes }: { role: JobRole; availableR
     mutationFn: () => api.post(`/roles/${role.id}/resumes`, { resumeId: selectedResumeId, isPrimary: role.resumeLinks.length === 0 }),
     onSuccess: () => {
       setSelectedResumeId("");
+      setError(null);
       invalidate();
     },
-    onError: (err) => setError(err instanceof ApiError ? err.message : "Failed to assign resume"),
+    onError: (err) => setError(formatApiError(err, "Failed to assign resume")),
   });
 
   const unassignResume = useMutation({
     mutationFn: (resumeId: string) => api.delete(`/roles/${role.id}/resumes/${resumeId}`),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      setError(null);
+      invalidate();
+    },
+    onError: (err) => setError(formatApiError(err, "Failed to remove resume")),
   });
 
   const setPrimaryResume = useMutation({
     mutationFn: (resumeId: string) => api.post(`/roles/${role.id}/resumes`, { resumeId, isPrimary: true }),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      setError(null);
+      invalidate();
+    },
+    onError: (err) => setError(formatApiError(err, "Failed to set primary resume")),
   });
 
   const deleteRole = useMutation({
     mutationFn: () => api.delete(`/roles/${role.id}`),
     onSuccess: invalidate,
+    onError: (err) => setError(formatApiError(err, "Failed to delete role")),
   });
 
   const savePreferences = useMutation({
@@ -96,8 +106,11 @@ export function RoleCard({ role, availableResumes }: { role: JobRole; availableR
       const locations = role.locations.map((l) => ({ locationType: l.locationType, city: l.city ?? undefined, state: l.state ?? undefined }));
       return api.put(`/roles/${role.id}/preferences`, { ...pref, locations });
     },
-    onSuccess: invalidate,
-    onError: (err) => setError(err instanceof ApiError ? err.message : "Failed to save preferences"),
+    onSuccess: () => {
+      setError(null);
+      invalidate();
+    },
+    onError: (err) => setError(formatApiError(err, "Failed to save preferences")),
   });
 
   const addLocation = useMutation({
@@ -115,9 +128,10 @@ export function RoleCard({ role, availableResumes }: { role: JobRole; availableR
     onSuccess: () => {
       setNewCity("");
       setNewState("");
+      setError(null);
       invalidate();
     },
-    onError: (err) => setError(err instanceof ApiError ? err.message : "Failed to add location"),
+    onError: (err) => setError(formatApiError(err, "Failed to add location")),
   });
 
   const removeLocation = useMutation({
@@ -127,7 +141,15 @@ export function RoleCard({ role, availableResumes }: { role: JobRole; availableR
         .map((l) => ({ locationType: l.locationType, city: l.city ?? undefined, state: l.state ?? undefined }));
       return api.put(`/roles/${role.id}/preferences`, { ...pref, locations });
     },
-    onSuccess: invalidate,
+    onSuccess: () => {
+      setError(null);
+      invalidate();
+    },
+    onError: (err) =>
+      setError(
+        formatApiError(err, "Failed to remove location") +
+          (role.locations.length === 1 ? " — a role needs at least one location, add another before removing this one." : ""),
+      ),
   });
 
   const unassignedResumes = availableResumes.filter((r) => !role.resumeLinks.some((l) => l.resumeId === r.id));
@@ -318,9 +340,21 @@ export function RoleCard({ role, availableResumes }: { role: JobRole; availableR
             </div>
           </div>
 
-          <button className="btn-primary" disabled={savePreferences.isPending} onClick={() => savePreferences.mutate()}>
-            {savePreferences.isPending ? "Saving…" : "Save Preferences"}
-          </button>
+          <div>
+            {role.locations.length === 0 && (
+              <p className="mb-2 text-sm text-amber-600">
+                Add at least one location above before saving — a role needs a location to search against.
+              </p>
+            )}
+            <button
+              className="btn-primary"
+              disabled={savePreferences.isPending || role.locations.length === 0}
+              onClick={() => savePreferences.mutate()}
+              title={role.locations.length === 0 ? "Add a location first" : undefined}
+            >
+              {savePreferences.isPending ? "Saving…" : "Save Preferences"}
+            </button>
+          </div>
         </div>
       )}
     </div>

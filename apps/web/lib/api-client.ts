@@ -13,6 +13,27 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * The API's validation errors carry the real, field-specific reason in
+ * `details` (zod's `.flatten()` shape) — `err.message` alone is just the
+ * generic "Validation failed", which tells the user nothing actionable.
+ * Every page that catches an ApiError should format it through this rather
+ * than reading `.message` directly.
+ */
+export function formatApiError(err: unknown, fallback = "Something went wrong"): string {
+  if (!(err instanceof ApiError)) return fallback;
+
+  const details = err.details as { fieldErrors?: Record<string, string[]>; formErrors?: string[] } | undefined;
+  const fieldMessages = details?.fieldErrors
+    ? Object.entries(details.fieldErrors)
+        .filter(([, msgs]) => msgs && msgs.length > 0)
+        .map(([field, msgs]) => `${field}: ${msgs.join(", ")}`)
+    : [];
+  if (fieldMessages.length > 0) return fieldMessages.join("; ");
+  if (details?.formErrors?.length) return details.formErrors.join("; ");
+  return err.message || fallback;
+}
+
 export interface AuthResponse {
   accessToken: string;
   user: { id: string; email: string };
