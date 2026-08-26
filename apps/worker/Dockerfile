@@ -8,7 +8,7 @@
 # to raw .ts source, which plain `node` can't import but tsx can, same as
 # local `pnpm dev` already does).
 
-FROM mcr.microsoft.com/playwright:v1.48.0-jammy AS base
+FROM mcr.microsoft.com/playwright:v1.62.1-jammy AS base
 # Ubuntu Jammy generally ships OpenSSL already, but installing it explicitly
 # here avoids relying on that — see the equivalent, confirmed-necessary fix
 # in apps/api/Dockerfile for what happens when Prisma's native engine can't
