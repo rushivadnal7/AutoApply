@@ -4,11 +4,13 @@ import { env } from "./lib/env.js";
 import { createRedisConnection } from "./lib/redis.js";
 import { createBotRunWorker } from "./queue/bullmq-worker.js";
 import { startHealthServer } from "./health-server.js";
+import { keyFingerprint } from "./lib/crypto.js";
 
 const logger = createLogger({ name: "worker" });
 
 async function main() {
   logger.info({ adapterMode: env.WORKER_ADAPTER_MODE }, "Starting automation worker");
+  logger.info({ credentialsKeyFingerprint: keyFingerprint() }, "Loaded CREDENTIALS_ENCRYPTION_KEY");
 
   const queueConnection = createRedisConnection("bullmq-worker");
   const publisherConnection = createRedisConnection("realtime-publisher");

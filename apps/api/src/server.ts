@@ -20,10 +20,13 @@ import dashboardRoutes from "./routes/dashboard.routes.js";
 
 import { createSocketServer } from "./realtime/socket-server.js";
 import { startRealtimeBridge } from "./realtime/redis-subscriber.js";
+import { keyFingerprint } from "./lib/crypto.js";
 
 const logger = createLogger({ name: "api" });
 
 async function main() {
+  logger.info({ credentialsKeyFingerprint: keyFingerprint() }, "Loaded CREDENTIALS_ENCRYPTION_KEY");
+
   const fastify = Fastify({ loggerInstance: logger, disableRequestLogging: env.NODE_ENV === "production" });
 
   await fastify.register(securityPlugin);

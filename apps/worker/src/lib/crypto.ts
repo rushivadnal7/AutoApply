@@ -1,4 +1,4 @@
-import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
+import { createCipheriv, createDecipheriv, randomBytes, createHash } from "node:crypto";
 import { env } from "./env.js";
 
 /**
@@ -17,6 +17,17 @@ function getKey(): Buffer {
     throw new Error(`CREDENTIALS_ENCRYPTION_KEY must decode to 32 bytes (got ${key.length})`);
   }
   return key;
+}
+
+/**
+ * A non-secret fingerprint of the currently-loaded key, purely for comparing
+ * "is this process actually running the key I think it is" across services
+ * without ever logging the key itself. Log this once at boot on both API and
+ * worker and diff the two fingerprints when a decrypt failure is suspected
+ * to be a key mismatch rather than a data problem.
+ */
+export function keyFingerprint(): string {
+  return createHash("sha256").update(getKey()).digest("hex").slice(0, 12);
 }
 
 export interface EncryptedPayload {

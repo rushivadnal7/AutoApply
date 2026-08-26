@@ -1,4 +1,4 @@
-import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
+import { createCipheriv, createDecipheriv, randomBytes, createHash } from "node:crypto";
 import { env } from "./env.js";
 
 /**
@@ -20,6 +20,14 @@ function getKey(): Buffer {
     );
   }
   return key;
+}
+
+/**
+ * Non-secret fingerprint of the currently-loaded key — see the identical
+ * helper in apps/worker/src/lib/crypto.ts for why this exists.
+ */
+export function keyFingerprint(): string {
+  return createHash("sha256").update(getKey()).digest("hex").slice(0, 12);
 }
 
 export interface EncryptedPayload {
