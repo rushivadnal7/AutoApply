@@ -14,7 +14,11 @@ FROM mcr.microsoft.com/playwright:v1.48.0-jammy AS base
 # in apps/api/Dockerfile for what happens when Prisma's native engine can't
 # find libssl at all.
 RUN apt-get update -y && apt-get install -y openssl ca-certificates && rm -rf /var/lib/apt/lists/*
-RUN corepack enable && corepack prepare pnpm@9.15.9 --activate
+# Not corepack — see the identical, confirmed-necessary fix in
+# apps/api/Dockerfile: npm rotated its package-signing keys, and older
+# corepack builds fail signature verification with "Cannot find matching
+# keyid" as a result. Plain `npm install -g` isn't exposed to that check.
+RUN npm install -g pnpm@9.15.9
 WORKDIR /repo
 
 FROM base AS deps

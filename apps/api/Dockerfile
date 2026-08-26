@@ -16,7 +16,13 @@ FROM node:20-slim AS base
 # it here, in the stage everything else builds from, means both the
 # generate step and the final runtime actually have it.
 RUN apt-get update -y && apt-get install -y openssl ca-certificates && rm -rf /var/lib/apt/lists/*
-RUN corepack enable && corepack prepare pnpm@9.15.9 --activate
+# Not corepack: it verifies package signatures against a fixed set of known
+# keys baked into whatever corepack version shipped with this base image,
+# and npm has since rotated its signing keys — older corepack builds fail
+# with "Cannot find matching keyid" on essentially any package now. Plain
+# `npm install -g` doesn't do this signature check, so it isn't exposed to
+# the same problem.
+RUN npm install -g pnpm@9.15.9
 WORKDIR /repo
 
 FROM base AS deps
