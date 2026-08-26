@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { ApiError } from "@/lib/api-client";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 
 export default function RegisterPage() {
   const { register } = useAuth();
@@ -40,7 +41,7 @@ export default function RegisterPage() {
           </div>
           <div>
             <label className="label" htmlFor="password">Password</label>
-            <input id="password" type="password" required minLength={10} className="input" value={password} onChange={(e) => setPassword(e.target.value)} />
+            <PasswordInput id="password" required minLength={10} value={password} onChange={(e) => setPassword(e.target.value)} />
             <p className="mt-1 text-xs text-gray-400">At least 10 characters, with upper/lowercase letters and a number.</p>
           </div>
           {error && <p className="text-sm text-red-600">{error}</p>}

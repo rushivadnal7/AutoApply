@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, ApiError } from "@/lib/api-client";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 
 interface Portal {
   id: string;
@@ -118,7 +119,7 @@ export default function PortalsPage() {
                   </div>
                   <div>
                     <label className="label">{portal.name} Password</label>
-                    <input type="password" required className="input" value={password} onChange={(e) => setPassword(e.target.value)} />
+                    <PasswordInput required value={password} onChange={(e) => setPassword(e.target.value)} />
                   </div>
                   {error && <p className="text-sm text-red-600">{error}</p>}
                   <div className="flex gap-2">
