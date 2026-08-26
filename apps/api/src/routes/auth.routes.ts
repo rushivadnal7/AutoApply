@@ -11,7 +11,14 @@ function setRefreshCookie(reply: import("fastify").FastifyReply, token: string) 
   reply.setCookie(REFRESH_COOKIE_NAME, token, {
     httpOnly: true,
     secure: isProduction,
-    sameSite: "strict",
+    // Strict works locally (localhost:3000 <-> localhost:4000 are same-site
+    // — SameSite cares about registrable domain, not port). In production
+    // the frontend (*.vercel.app) and API (*.onrender.com) are on entirely
+    // different domains, which is cross-site: Strict (and even Lax) would
+    // silently stop the browser from ever sending this cookie back to the
+    // API, breaking refresh/logout. None + Secure is required for that, and
+    // is only safe because Secure is force-enabled alongside it below.
+    sameSite: isProduction ? "none" : "strict",
     path: "/auth",
     domain: env.COOKIE_DOMAIN,
     maxAge: 60 * 60 * 24 * 30,

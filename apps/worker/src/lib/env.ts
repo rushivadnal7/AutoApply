@@ -5,6 +5,10 @@ import { z } from "zod";
 config({ path: resolve(process.cwd(), "../../.env") });
 config();
 
+// Render assigns its own PORT and requires the service to bind to it — see
+// the identical comment in apps/api/src/lib/env.ts.
+if (process.env.PORT) process.env.WORKER_HEALTH_PORT = process.env.PORT;
+
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   DATABASE_URL: z.string().min(1),

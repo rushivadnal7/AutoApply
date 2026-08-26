@@ -1,5 +1,13 @@
 # Built from the monorepo root: docker build -f apps/api/Dockerfile .
 # Render (free Web Service) deploys this directly — see SYSTEM_DESIGN.md §12.
+#
+# Runs via `tsx` rather than compiled `dist/` output. The shared workspace
+# packages (@job-app/logger, @job-app/shared, @job-app/db) resolve straight
+# to their TypeScript source (see their package.json `main`/`exports`) —
+# that's fine for tsx (dev, and here) but plain `node` cannot import a raw
+# .ts file at all (ERR_UNKNOWN_FILE_EXTENSION). Running the same way in
+# prod as in `pnpm dev` sidesteps having to give every shared package its
+# own build step and keep it correctly ordered in this Dockerfile.
 
 FROM node:20-slim AS base
 RUN corepack enable && corepack prepare pnpm@9.15.9 --activate
@@ -21,7 +29,6 @@ COPY packages/shared packages/shared
 COPY packages/db packages/db
 COPY apps/api apps/api
 RUN pnpm --filter @job-app/db generate
-RUN pnpm --filter @job-app/api build
 
 FROM node:20-slim AS runtime
 RUN corepack enable && corepack prepare pnpm@9.15.9 --activate
@@ -29,4 +36,4 @@ WORKDIR /repo
 ENV NODE_ENV=production
 COPY --from=build /repo /repo
 EXPOSE 4000
-CMD ["node", "apps/api/dist/server.js"]
+CMD ["pnpm", "exec", "tsx", "apps/api/src/server.ts"]

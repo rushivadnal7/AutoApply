@@ -8,6 +8,12 @@ import { z } from "zod";
 config({ path: resolve(process.cwd(), "../../.env") });
 config();
 
+// Render (and most PaaS hosts) inject their own PORT and require the
+// service to bind to it — a fixed API_PORT would make the deployed service
+// unreachable even though the process itself starts fine. PORT wins when
+// present; API_PORT stays authoritative for local dev where PORT isn't set.
+if (process.env.PORT) process.env.API_PORT = process.env.PORT;
+
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   API_PORT: z.coerce.number().int().default(4000),

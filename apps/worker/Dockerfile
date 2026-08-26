@@ -2,6 +2,11 @@
 # Render (free Web Service) deploys this directly — see SYSTEM_DESIGN.md §12.
 # Base image ships Chromium + all system deps preinstalled, avoiding a
 # manual apt-get dependency chase for Playwright.
+#
+# Runs via `tsx` rather than compiled `dist/` output — see the comment at
+# the top of apps/api/Dockerfile for why (shared workspace packages resolve
+# to raw .ts source, which plain `node` can't import but tsx can, same as
+# local `pnpm dev` already does).
 
 FROM mcr.microsoft.com/playwright:v1.48.0-jammy AS base
 RUN corepack enable && corepack prepare pnpm@9.15.9 --activate
@@ -23,13 +28,12 @@ COPY packages/shared packages/shared
 COPY packages/db packages/db
 COPY apps/worker apps/worker
 RUN pnpm --filter @job-app/db generate
-RUN pnpm --filter @job-app/worker build
 
 FROM mcr.microsoft.com/playwright:v1.48.0-jammy AS runtime
 RUN corepack enable && corepack prepare pnpm@9.15.9 --activate
 WORKDIR /repo
 ENV NODE_ENV=production
-ENV WORKER_ADAPTER_MODE=dice
+ENV WORKER_ADAPTER_MODE=mock
 COPY --from=build /repo /repo
 EXPOSE 4100
-CMD ["node", "apps/worker/dist/main.js"]
+CMD ["pnpm", "exec", "tsx", "apps/worker/src/main.ts"]
