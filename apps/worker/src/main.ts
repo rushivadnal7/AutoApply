@@ -9,8 +9,8 @@ const logger = createLogger({ name: "worker" });
 async function main() {
   logger.info({ adapterMode: env.WORKER_ADAPTER_MODE }, "Starting automation worker");
 
-  const queueConnection = createRedisConnection();
-  const publisherConnection = createRedisConnection();
+  const queueConnection = createRedisConnection("bullmq-worker");
+  const publisherConnection = createRedisConnection("realtime-publisher");
 
   const health = await startHealthServer(logger);
   const worker = createBotRunWorker(queueConnection, publisherConnection, logger);

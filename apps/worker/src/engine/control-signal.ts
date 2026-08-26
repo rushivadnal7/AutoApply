@@ -17,7 +17,7 @@ export class ControlSignal {
   private readonly subscriber: IORedis;
 
   constructor(private readonly userId: string) {
-    this.subscriber = createRedisConnection();
+    this.subscriber = createRedisConnection("control-signal-subscriber");
   }
 
   async start(): Promise<void> {

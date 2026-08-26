@@ -11,7 +11,7 @@ import { userRoom } from "./socket-server.js";
  * (`realtime:{userId}`) and this subscriber re-emits it verbatim.
  */
 export function startRealtimeBridge(io: SocketIOServer, logger: Logger): () => Promise<void> {
-  const subscriber = createRedisConnection();
+  const subscriber = createRedisConnection("realtime-subscriber");
 
   subscriber.psubscribe("realtime:*", (err: Error | null | undefined) => {
     if (err) logger.error({ err }, "Failed to subscribe to realtime:* channel");
