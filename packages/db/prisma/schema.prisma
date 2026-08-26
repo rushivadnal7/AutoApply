@@ -12,7 +12,15 @@
 //   2. BotRun: at most one row per userId whose status is in the "active" set
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  // "native" keeps local dev working (Windows/macOS/whatever you're on).
+  // "debian-openssl-3.0.x" is what both Docker images actually run on at
+  // runtime (node:20-slim is Debian Bookworm; the Playwright worker image
+  // is Ubuntu Jammy, which resolves to the same target family) — pinned
+  // explicitly rather than relying on Prisma's auto-detection, which
+  // silently guessed the wrong OpenSSL version when it couldn't find any
+  // OpenSSL at all during a from-scratch container build.
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
 datasource db {

@@ -10,6 +10,12 @@
 # own build step and keep it correctly ordered in this Dockerfile.
 
 FROM node:20-slim AS base
+# node:20-slim ships with no OpenSSL at all — Prisma's native query engine
+# binary needs libssl present just to load (dlopen), regardless of whether
+# it's used to run `prisma generate` or just to start the app. Installing
+# it here, in the stage everything else builds from, means both the
+# generate step and the final runtime actually have it.
+RUN apt-get update -y && apt-get install -y openssl ca-certificates && rm -rf /var/lib/apt/lists/*
 RUN corepack enable && corepack prepare pnpm@9.15.9 --activate
 WORKDIR /repo
 
@@ -30,9 +36,10 @@ COPY packages/db packages/db
 COPY apps/api apps/api
 RUN pnpm --filter @job-app/db generate
 
-FROM node:20-slim AS runtime
-RUN corepack enable && corepack prepare pnpm@9.15.9 --activate
-WORKDIR /repo
+# Inherits from `base` (not a fresh `FROM node:20-slim`) specifically so the
+# openssl install and pnpm setup above actually carry into the runtime
+# image — a separate `FROM node:20-slim` here would silently drop both.
+FROM base AS runtime
 ENV NODE_ENV=production
 COPY --from=build /repo /repo
 EXPOSE 4000

@@ -9,6 +9,11 @@
 # local `pnpm dev` already does).
 
 FROM mcr.microsoft.com/playwright:v1.48.0-jammy AS base
+# Ubuntu Jammy generally ships OpenSSL already, but installing it explicitly
+# here avoids relying on that — see the equivalent, confirmed-necessary fix
+# in apps/api/Dockerfile for what happens when Prisma's native engine can't
+# find libssl at all.
+RUN apt-get update -y && apt-get install -y openssl ca-certificates && rm -rf /var/lib/apt/lists/*
 RUN corepack enable && corepack prepare pnpm@9.15.9 --activate
 WORKDIR /repo
 
@@ -29,9 +34,10 @@ COPY packages/db packages/db
 COPY apps/worker apps/worker
 RUN pnpm --filter @job-app/db generate
 
-FROM mcr.microsoft.com/playwright:v1.48.0-jammy AS runtime
-RUN corepack enable && corepack prepare pnpm@9.15.9 --activate
-WORKDIR /repo
+# Inherits from `base` (not a fresh `FROM ...:jammy`) so the openssl install
+# and pnpm setup above actually carry into the runtime image — see the
+# identical reasoning in apps/api/Dockerfile.
+FROM base AS runtime
 ENV NODE_ENV=production
 ENV WORKER_ADAPTER_MODE=mock
 COPY --from=build /repo /repo
