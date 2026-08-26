@@ -4,7 +4,7 @@ import { Providers } from "./providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Job Application Automation",
+  title: "AutoApply",
   description: "Configure roles, resumes, and preferences, then let the bot apply for you.",
 };
 

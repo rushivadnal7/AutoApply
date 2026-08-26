@@ -103,7 +103,18 @@ async function requestBlob(path: string, allowRetry = true): Promise<Blob> {
   const token = getAccessToken();
   if (token) headers.set("Authorization", `Bearer ${token}`);
 
-  const res = await fetch(`${API_URL}${path}`, { headers, credentials: "include" });
+  // Deliberately no `credentials: "include"` here, unlike request() above.
+  // This endpoint is Bearer-authenticated, not cookie-authenticated, so our
+  // own API never needs the cookie for it — and it matters concretely: this
+  // request 302-redirects to a signed Supabase Storage URL, and fetch
+  // carries the same credentials mode through a redirect. Supabase's signed
+  // URL responds with `Access-Control-Allow-Origin: *` (correct on their
+  // end — anyone holding the valid signed token should be able to fetch
+  // it), and browsers hard-block combining a wildcard ACAO with a
+  // credentialed request. Sending credentials here broke every resume
+  // download in production with a CORS error, even though the request to
+  // our own API was never the problem.
+  const res = await fetch(`${API_URL}${path}`, { headers });
 
   if (res.status === 401 && allowRetry) {
     const refreshed = await tryRefresh();

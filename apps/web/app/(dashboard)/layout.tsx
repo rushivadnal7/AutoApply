@@ -36,7 +36,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <div className="flex min-h-screen bg-gray-50">
       <aside className="flex w-60 shrink-0 flex-col border-r border-gray-200 bg-white">
         <div className="border-b border-gray-200 px-5 py-5">
-          <p className="text-sm font-semibold text-gray-900">Job Application Bot</p>
+          <p className="text-sm font-semibold text-gray-900">AutoApply</p>
           <p className="mt-0.5 truncate text-xs text-gray-500">{user.email}</p>
         </div>
         <nav className="flex-1 space-y-1 px-3 py-4">
