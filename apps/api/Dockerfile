@@ -9,7 +9,7 @@
 # prod as in `pnpm dev` sidesteps having to give every shared package its
 # own build step and keep it correctly ordered in this Dockerfile.
 
-FROM node:20-slim AS base
+FROM node:25-slim AS base
 # node:20-slim ships with no OpenSSL at all — Prisma's native query engine
 # binary needs libssl present just to load (dlopen), regardless of whether
 # it's used to run `prisma generate` or just to start the app. Installing
