@@ -26,9 +26,9 @@
   },
   "devDependencies": {
     "@job-app/config": "workspace:*",
-    "@types/node": "^20.16.0",
-    "prisma": "^5.20.0",
+    "@types/node": "^26.2.0",
+    "prisma": "^7.9.1",
     "tsx": "^4.19.0",
-    "typescript": "^5.6.0"
+    "typescript": "^7.0.2"
   }
 }
